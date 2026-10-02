@@ -2,7 +2,7 @@ name: Test and Deploy
 
 on:
   push:
-    branches: [ "**" ]   # push ทุก branch → test / push เข้า main (หลังกด merge) → test + deploy
+    branches: [ "test/deploy" ]   # push ทุก branch → test / push เข้า main (หลังกด merge) → test + deploy
 
 jobs:
   # ---------- Job 1: Test (รันทุกครั้งที่ push) ----------
