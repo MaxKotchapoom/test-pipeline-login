@@ -1,0 +1,59 @@
+name: Branch Merge and Deploy
+
+on:
+  push:
+    branches-ignore: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  # Job 1: รัน test บน branch ที่ push
+  test:
+    name: Run Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          pip install -r requirements.txt
+          pytest test_app.py -v
+
+  # Job 2: merge branch เข้า main (เฉพาะเมื่อ test ผ่าน)
+  merge:
+    name: Merge into main
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge into main
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git checkout main
+          git merge --no-ff "${{ github.ref_name }}" -m "Auto-merge ${{ github.ref_name }}"
+          git push origin main
+
+  # Job 3: deploy จาก main ที่ merge เสร็จแล้ว (เฉพาะเมื่อ merge สำเร็จ)
+  deploy:
+    name: Deploy to Vercel
+    needs: merge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # ดึง main ล่าสุดหลัง merge
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-version: 'latest'
+          vercel-args: '--prod'
